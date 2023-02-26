@@ -69,13 +69,23 @@ def show_pokemon(request, pokemon_id):
         return HttpResponseNotFound('<h1>Такой покемон не найден</h1>')
 
     if requested_pokemon.evaluation_from:
-        pokemons_evolution_from_info = {
+        pokemons_evolution_from = {
             'pokemon_id': requested_pokemon.evaluation_from.pk,
             'img_url': request.build_absolute_uri(requested_pokemon.evaluation_from.image.url),
             'title_ru': requested_pokemon.evaluation_from.title,
         }
     else:
-        pokemons_evolution_from_info = {}
+        pokemons_evolution_from = {}
+
+    if pokemon.evolutions.all():
+        pokemons_evolution_to = {
+            'pokemon_id': requested_pokemon.evolutions.all()[0].pk,
+            'img_url': requested_pokemon.evolutions.all()[0].image.url,
+            'title_ru': requested_pokemon.evolutions.all()[0].title,
+        }
+    else:
+        pokemons_evolution_to = {}
+
 
     img_url = request.build_absolute_uri(requested_pokemon.image.url)
     pokemons_info = {
@@ -85,7 +95,8 @@ def show_pokemon(request, pokemon_id):
         'title_en': requested_pokemon.title_en,
         'title_jp': requested_pokemon.title_jp,
         'description': requested_pokemon.description,
-        'previous_evolution': pokemons_evolution_from_info
+        'previous_evolution': pokemons_evolution_from,
+        'next_evolution': pokemons_evolution_to
     }
 
     requested_pokemon_entities = PokemonEntity.objects.filter(pokemon=requested_pokemon)
