@@ -5,19 +5,19 @@ class Pokemon(models.Model):
     title = models.CharField(max_length=200, verbose_name='Название')
     title_en = models.CharField(max_length=50, blank=True, verbose_name='Название на английском')
     title_jp = models.CharField(max_length=50, blank=True, verbose_name='Название на японском')
-    evaluation_from = models.ForeignKey('self', null=True,
-                                        on_delete=models.SET_NULL,
-                                        blank=True,
-                                        related_name='evolutions', verbose_name='Эвалюция')
+    previous_evolution = models.ForeignKey('self', null=True,
+                                           on_delete=models.SET_NULL,
+                                           blank=True,
+                                           related_name='next_evolution', verbose_name='Эвалюция')
     image = models.ImageField(null=True, blank=True, verbose_name='Картинка')
-    description = models.TextField(blank=True, verbose_name='Описание')
+    description = models.TextField(blank=True, verbose_name='Описание', default='default.jpg')
 
     def __str__(self):
         return self.title
 
 
 class PokemonEntity(models.Model):
-    pokemon = models.ForeignKey(Pokemon, on_delete=models.CASCADE, verbose_name='Покемон')
+    pokemon = models.ForeignKey(Pokemon, on_delete=models.CASCADE,related_name='entities', verbose_name='Покемон')
     lat = models.FloatField(verbose_name='Широта')
     lon = models.FloatField(verbose_name='Долгота')
     appeared_at = models.DateTimeField(null=True, verbose_name='Время появления')
@@ -28,5 +28,7 @@ class PokemonEntity(models.Model):
     defence = models.IntegerField(null=True, blank=True, verbose_name='Защита покемона')
     stamina = models.IntegerField(null=True, blank=True, verbose_name='Выносливость покемона')
 
+    def __str__(self):
+        return "Pokemon {}_{} level {}".format(self.pokemon, self.id, self.level)
 
 

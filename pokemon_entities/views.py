@@ -5,6 +5,7 @@ from django.http import HttpResponseNotFound
 from django.shortcuts import render
 from .models import Pokemon, PokemonEntity
 from django.utils.timezone import localtime
+from django.shortcuts import get_object_or_404
 
 
 MOSCOW_CENTER = [55.751244, 37.618423]
@@ -29,17 +30,16 @@ def add_pokemon(folium_map, lat, lon, image_url=DEFAULT_IMAGE_URL):
 
 
 def show_all_pokemons(request):
-    pokemon_entity = PokemonEntity.objects.all()
+    pokemon_entity = PokemonEntity.objects.filter(appeared_at__lte=localtime(),
+                                                  disappeared_at__gte=localtime())
 
     folium_map = folium.Map(location=MOSCOW_CENTER, zoom_start=12)
     for entity in pokemon_entity:
-        if entity.appeared_at <= localtime() <= entity.disappeared_at:
-            add_pokemon(
-                folium_map,
-                entity.lat,
-                entity.lon,
-                request.build_absolute_uri(entity.pokemon.image.url)
-            )
+        add_pokemon(folium_map,
+                    entity.lat,
+                    entity.lon,
+                    request.build_absolute_uri(entity.pokemon.image.url)
+                    )
 
     pokemons_on_page = []
     pokemons = Pokemon.objects.all()
@@ -47,7 +47,7 @@ def show_all_pokemons(request):
         if pokemon.image:
             img_url = request.build_absolute_uri(pokemon.image.url)
         else:
-            img_url = pokemon.image
+            img_url = DEFAULT_IMAGE_URL
         pokemons_on_page.append({
             'pokemon_id': pokemon.pk,
             'img_url': img_url,
@@ -61,45 +61,37 @@ def show_all_pokemons(request):
 
 
 def show_pokemon(request, pokemon_id):
-    pokemon = Pokemon.objects.get(pk=pokemon_id)
+    pokemon = get_object_or_404(Pokemon, pk=pokemon_id)
+    pokemons_evolution_from = {}
+    pokemons_evolution_to = {}
 
-    if pokemon.id == int(pokemon_id):
-        requested_pokemon = pokemon
-    else:
-        return HttpResponseNotFound('<h1>Такой покемон не найден</h1>')
-
-    if requested_pokemon.evaluation_from:
+    if pokemon.previous_evolution:
         pokemons_evolution_from = {
-            'pokemon_id': requested_pokemon.evaluation_from.pk,
-            'img_url': request.build_absolute_uri(requested_pokemon.evaluation_from.image.url),
-            'title_ru': requested_pokemon.evaluation_from.title,
+            'pokemon_id': pokemon.previous_evolution.pk,
+            'img_url': request.build_absolute_uri(pokemon.previous_evolution.image.url),
+            'title_ru': pokemon.previous_evolution.title,
         }
-    else:
-        pokemons_evolution_from = {}
 
-    if pokemon.evolutions.all():
+    if pokemon.next_evolution.all():
         pokemons_evolution_to = {
-            'pokemon_id': requested_pokemon.evolutions.all()[0].pk,
-            'img_url': requested_pokemon.evolutions.all()[0].image.url,
-            'title_ru': requested_pokemon.evolutions.all()[0].title,
+            'pokemon_id': pokemon.next_evolution.first().pk,
+            'img_url': pokemon.next_evolution.all().first().image.url,
+            'title_ru': pokemon.next_evolution.first().title,
         }
-    else:
-        pokemons_evolution_to = {}
 
-
-    img_url = request.build_absolute_uri(requested_pokemon.image.url)
+    img_url = request.build_absolute_uri(pokemon.image.url)
     pokemons_info = {
-        'pokemon_id': requested_pokemon.pk,
+        'pokemon_id': pokemon.pk,
         'img_url': img_url,
-        'title_ru': requested_pokemon.title,
-        'title_en': requested_pokemon.title_en,
-        'title_jp': requested_pokemon.title_jp,
-        'description': requested_pokemon.description,
+        'title_ru': pokemon.title,
+        'title_en': pokemon.title_en,
+        'title_jp': pokemon.title_jp,
+        'description': pokemon.description,
         'previous_evolution': pokemons_evolution_from,
         'next_evolution': pokemons_evolution_to
     }
 
-    requested_pokemon_entities = PokemonEntity.objects.filter(pokemon=requested_pokemon)
+    requested_pokemon_entities = PokemonEntity.objects.filter(pokemon=pokemon)
 
     folium_map = folium.Map(location=MOSCOW_CENTER, zoom_start=12)
     for pokemon_entity in requested_pokemon_entities:
