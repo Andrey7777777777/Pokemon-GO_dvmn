@@ -8,9 +8,9 @@ class Pokemon(models.Model):
     previous_evolution = models.ForeignKey('self', null=True,
                                            on_delete=models.SET_NULL,
                                            blank=True,
-                                           related_name='next_evolution', verbose_name='Эвалюция')
+                                           related_name='next_evolutions', verbose_name='Эволюция')
     image = models.ImageField(null=True, blank=True, verbose_name='Картинка')
-    description = models.TextField(blank=True, verbose_name='Описание', default='default.jpg')
+    description = models.TextField(blank=True, verbose_name='Описание')
 
     def __str__(self):
         return self.title
@@ -29,6 +29,6 @@ class PokemonEntity(models.Model):
     stamina = models.IntegerField(null=True, blank=True, verbose_name='Выносливость покемона')
 
     def __str__(self):
-        return "Pokemon {}_{} level {}".format(self.pokemon, self.id, self.level)
+        return self.pokemon.title
 
 
